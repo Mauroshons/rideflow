@@ -1,4 +1,5 @@
 import { TrainerAdapter, WriteQueue } from './base.js';
+import { FecChannel, requestOptions } from './tacx.js';
 import * as P from './protocol.js';
 
 /**
@@ -18,14 +19,17 @@ export class FtmsAdapter extends TrainerAdapter {
     return typeof navigator !== 'undefined' && !!navigator.bluetooth;
   }
 
-  constructor() {
+  constructor({ showAllDevices = false } = {}) {
     super();
     this.device = null;
     this.server = null;
     this.cp = null;             // control point
     this.queue = new WriteQueue();
     this.hasControl = false;
+    this.showAllDevices = showAllDevices;
+    this.fec = null;            // relleno sólo si el rodillo resulta ser FE-C
     this._onDisconnect = () => {
+      this.fec?.stopKeepalive();
       this.log('El rodillo se desconectó.', 'warn');
       this.setConnected(false);
     };
@@ -38,28 +42,45 @@ export class FtmsAdapter extends TrainerAdapter {
       );
     }
 
-    this.device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: [P.UUID.ftms] }, { services: [P.UUID.cyclingPower] }],
-      optionalServices: [
-        P.UUID.ftms,
-        P.UUID.cyclingPower,
-        P.UUID.heartRate,
-        P.UUID.deviceInfo,
-        P.UUID.tacxFec,
-      ],
-    });
+    this.device = await navigator.bluetooth.requestDevice(
+      requestOptions(this.showAllDevices, [P.UUID.ftms])
+    );
 
     this.device.addEventListener('gattserverdisconnected', this._onDisconnect);
     this.server = await this.device.gatt.connect();
     this.log(`Conectado a ${this.device.name ?? 'rodillo'}.`);
 
+    // Orden de preferencia: FTMS, luego el FE-C de Tacx, y como último
+    // recurso Cycling Power en modo sólo-medición. Antes, un Flow sin FTMS
+    // acababa en Cycling Power y había que volver a Ajustes a cambiar de
+    // adaptador a mano; ahora se resuelve en la misma conexión.
     const ftms = await this.server.getPrimaryService(P.UUID.ftms).catch(() => null);
-    if (ftms) await this._setupFtms(ftms);
-    else await this._setupPowerOnly();
+    if (ftms) {
+      await this._setupFtms(ftms);
+    } else {
+      const fecService = await this.server.getPrimaryService(P.UUID.tacxFec).catch(() => null);
+      if (fecService) await this._setupFec(fecService);
+      else await this._setupPowerOnly();
+    }
 
     await this._setupHeartRate();
     this.setConnected(true, this.device.name ?? 'Rodillo');
     return this;
+  }
+
+  /** El rodillo no tiene FTMS pero sí el servicio FE-C de Tacx. */
+  async _setupFec(service) {
+    this.log('Sin FTMS, pero habla FE-C de Tacx. Sigo por ahí.');
+    this.fec = new FecChannel({
+      onData: (d) => this.emitData(d),
+      onLog: (m, l) => this.log(m, l),
+    });
+    await this.fec.attach(service, () => !!this.device?.gatt?.connected);
+    Object.assign(this.supports, {
+      power: true, cadence: true, speed: true, slope: true, erg: true, resistance: true,
+    });
+    await this.fec.setSlope(0);
+    this.fec.startKeepalive();
   }
 
   async _setupFtms(service) {
@@ -191,11 +212,13 @@ export class FtmsAdapter extends TrainerAdapter {
   }
 
   async setSlope(grade, crr = 0.004, cw = 0.51) {
+    if (this.fec) return this.fec.setSlope(grade, crr);
     if (!this.supports.slope) return;
     await this._write(P.ftmsSimulation(grade, crr, cw));
   }
 
   async setTargetPower(watts) {
+    if (this.fec) return this.fec.setTargetPower(watts);
     if (!this.supports.erg) return;
     const w = this.powerRange
       ? P.clamp(watts, this.powerRange.min, this.powerRange.max)
@@ -204,11 +227,19 @@ export class FtmsAdapter extends TrainerAdapter {
   }
 
   async setResistance(percent) {
+    if (this.fec) return this.fec.setResistance(percent);
     if (!this.supports.resistance) return;
     await this._write(P.ftmsTargetResistance(percent));
   }
 
+  async setRider(rider) {
+    // FTMS lleva la masa dentro de cada consigna de simulación; FE-C la
+    // configura una vez con la página 55.
+    if (this.fec) await this.fec.setRider(rider);
+  }
+
   async disconnect() {
+    this.fec?.stopKeepalive();
     try {
       if (this.hasControl) await this._write(P.ftmsStop());
     } catch { /* da igual: nos vamos igual */ }

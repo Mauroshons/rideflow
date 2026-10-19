@@ -98,6 +98,7 @@ export const DEFAULT_SETTINGS = {
   difficulty: 1.0,
   units: 'metric',
   adapter: 'sim',
+  showAllDevices: false,
   bridgeUrl: 'ws://rideflow.local:8787',
   keepAwake: true,
 };

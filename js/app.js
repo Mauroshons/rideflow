@@ -475,6 +475,10 @@ async function renderAdapters() {
     box.appendChild(label);
   }
 
+  const showAll = $('#showAllDevices');
+  showAll.checked = !!app.settings.showAllDevices;
+  showAll.onchange = () => { app.settings = Settings.save({ showAllDevices: showAll.checked }); };
+
   $('#bridgeUrl').value = app.settings.bridgeUrl;
   const needsBridge = app.settings.adapter === 'bridge';
   $('#bridgeUrl').closest('.field').style.display = needsBridge ? '' : 'none';
@@ -497,19 +501,51 @@ $('#btnConnect').addEventListener('click', async () => {
     await app.trainer.connect(id, {
       url: $('#bridgeUrl').value.trim(),
       ftp: app.settings.ftp,
+      showAllDevices: $('#showAllDevices').checked,
     });
     app.settings = Settings.save({ bridgeUrl: $('#bridgeUrl').value.trim() });
     toast(`Conectado: ${app.trainer.adapter.deviceName}.`);
     await requestPersistence();
   } catch (err) {
-    // Cancelar el selector de dispositivos lanza NotFoundError; no es un fallo.
-    if (err.name === 'NotFoundError' && /cancel/i.test(err.message)) toast('Conexión cancelada.');
-    else toast(err.message, 'error');
+    toast(connectErrorMessage(err, id), 'error');
+    app.trainer._onLog({ message: `${err.name}: ${err.message}`, level: 'error', at: Date.now() });
   } finally {
     btn.disabled = false;
     btn.textContent = 'Conectar';
   }
 });
+
+/**
+ * Traduce el fallo de Web Bluetooth a algo que se pueda accionar. Los
+ * mensajes que da Chrome son correctos y completamente inútiles para alguien
+ * que está encima de la bici queriendo empezar.
+ */
+function connectErrorMessage(err, adapterId) {
+  const bluetoothAdapter = adapterId === 'ftms' || adapterId === 'tacx-fec';
+
+  if (err.name === 'NotFoundError' && /cancel/i.test(err.message)) {
+    return $('#showAllDevices').checked
+      ? 'Conexión cancelada.'
+      : 'Conexión cancelada. Si el rodillo no salía en la lista, marcá "Mostrar todos los dispositivos".';
+  }
+  if (err.name === 'NotFoundError' && bluetoothAdapter) {
+    return 'No apareció ningún rodillo. Encendelo, pedaleá un par de segundos y marcá ' +
+      '"Mostrar todos los dispositivos" si sigue sin salir.';
+  }
+  if (err.name === 'SecurityError') {
+    return 'El navegador bloqueó el Bluetooth. La app tiene que estar servida desde ' +
+      'localhost o por HTTPS: usá start.cmd en vez de abrir el archivo directamente.';
+  }
+  if (err.name === 'NetworkError') {
+    return 'Se cortó la conexión al conectar. Suele pasar si el rodillo ya está ' +
+      'emparejado con otra app o con el móvil: cerrá la otra y volvé a probar.';
+  }
+  if (err.name === 'NotSupportedError') {
+    return 'El rodillo rechazó una operación que decía soportar. Mirá el registro ' +
+      'en Diagnóstico y probá con el otro adaptador Bluetooth.';
+  }
+  return err.message;
+}
 
 $('#btnDisconnect').addEventListener('click', async () => {
   await app.trainer.disconnect();
