@@ -7,19 +7,52 @@ Sin framework, sin paso de compilación, sin dependencias en tiempo de
 ejecución salvo Leaflet para el mapa. Son archivos estáticos: cualquier
 servidor los sirve y el navegador los ejecuta tal cual.
 
-## Empezá por aquí: en el PC, con doble clic
+## Empezá por aquí
+
+Está publicada en GitHub Pages, así que no hace falta instalar nada: abrí la
+URL en **Chrome o Edge**, e **Instalar RideFlow** desde el menú del navegador
+para que tenga icono y ventana propia.
+
+Para conectar el rodillo: **Ajustes → Rodillo → Rodillo Bluetooth (FTMS) →
+Conectar**. Si el Tacx no sale en el selector, marcá **Mostrar todos los
+dispositivos**.
+
+Esto funciona porque Pages sirve por HTTPS, y Web Bluetooth exige un origen
+seguro. Desde la URL publicada no hace falta ni clonar el repo ni levantar
+nada.
+
+### En local, con doble clic
+
+Si preferís no depender de internet, o estás tocando el código:
 
 ```
 start.cmd
 ```
 
-Eso levanta el servidor y abre la app en Chrome o Edge. Para conectar el
-rodillo: **Ajustes → Rodillo → Rodillo Bluetooth (FTMS) → Conectar**. Si el
-Tacx no sale en el selector, volvé y probá **Tacx FE-C**.
+Levanta el servidor en `localhost` y abre la app. `localhost` también cuenta
+como origen seguro, así que el rodillo conecta igual.
 
-Para que quede como una aplicación de verdad —icono propio, ventana sin barra
-de direcciones, arranque sin red— abrí el menú del navegador e **Instalar
-RideFlow**.
+### Lo que la URL publicada NO resuelve: el puente desde el iPad
+
+Publicar en HTTPS arregla la instalación en iPad, pero rompe el puente, y
+conviene saberlo antes de pelearse con ello: **un navegador no deja abrir un
+WebSocket `ws://` desde una página `https://`**. Es contenido mixto y lo
+bloquea sin preguntar. Así que un iPad con la app abierta desde Pages no puede
+hablar con un puente en `ws://192.168.1.x:8787`.
+
+Las combinaciones que de verdad funcionan:
+
+| Abrís la app desde | Rodillo por Bluetooth directo | Rodillo por puente | Se instala como app |
+|---|---|---|---|
+| URL de Pages, en PC | **sí** | no (contenido mixto) | sí |
+| `start.cmd`, en PC | **sí** | sí (`ws://localhost`) | sí |
+| URL de Pages, en iPad | no (Safari no tiene la API) | no (contenido mixto) | sí |
+| IP local por http, en iPad | no | **sí** | no (origen inseguro) |
+
+En resumen: en el PC, la URL publicada es la mejor opción y no renuncia a
+nada. En el iPad hay que elegir entre instalarla o usar el puente, y para
+tener las dos cosas a la vez haría falta servir el puente por `wss://` con un
+certificado que el iPad acepte.
 
 ---
 
