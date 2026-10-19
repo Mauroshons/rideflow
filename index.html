@@ -19,8 +19,65 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <link rel="stylesheet" href="css/styles.css">
+
+<script>
+/* Red de seguridad, antes que cualquier otra cosa.
+ *
+ * Un fallo al cargar un módulo deja la página muda: no se pinta nada y no
+ * hay forma de saber por qué desde el propio dispositivo. En un iPad, sin
+ * consola a mano, eso es un callejón sin salida. Esto convierte cualquier
+ * error no capturado en algo legible en pantalla, con el dato que de verdad
+ * hace falta para diagnosticarlo: la versión del navegador. */
+(function () {
+  var shown = false;
+  function show(title, detail) {
+    if (shown) return;
+    shown = true;
+    var box = document.createElement('div');
+    box.setAttribute('role', 'alert');
+    box.style.cssText =
+      'position:fixed;inset:0;z-index:9999;overflow:auto;padding:22px;' +
+      'background:#0d0f13;color:#e9ecf1;font:14px/1.5 -apple-system,system-ui,sans-serif';
+    box.innerHTML =
+      '<h1 style="font-size:19px;margin:0 0 10px">RideFlow no pudo arrancar</h1>' +
+      '<p style="color:#9aa3b0;margin:0 0 14px">Copiá este texto: dice exactamente qué falló.</p>' +
+      '<pre style="white-space:pre-wrap;word-break:break-word;background:#0a0c0f;' +
+      'border:1px solid #262b34;border-radius:10px;padding:12px;font:12px/1.5 ui-monospace,Menlo,monospace">' +
+      esc(title) + '\n\n' + esc(detail) + '\n\n' +
+      esc(location.href) + '\n' + esc(navigator.userAgent) + '</pre>' +
+      '<button style="margin-top:14px;min-height:46px;padding:0 16px;border-radius:10px;' +
+      'border:1px solid #262b34;background:#ffd23f;color:#231c00;font:inherit;font-weight:600" ' +
+      'onclick="location.reload()">Reintentar</button>';
+    (document.body || document.documentElement).appendChild(box);
+  }
+  function esc(s) {
+    return String(s).replace(/[<>&]/g, function (c) {
+      return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c];
+    });
+  }
+  window.addEventListener('error', function (e) {
+    // Un recurso que no carga (una hoja de estilo, un script) genera un
+    // evento sin message; se distingue por tener target con src o href.
+    if (e.target && e.target !== window && (e.target.src || e.target.href)) {
+      show('No se pudo cargar un recurso', e.target.src || e.target.href);
+      return;
+    }
+    show(e.message || 'Error desconocido',
+         (e.filename || '') + (e.lineno ? ':' + e.lineno : ''));
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason;
+    show('Promesa rechazada sin capturar', (r && (r.stack || r.message)) || String(r));
+  });
+})();
+</script>
 </head>
 <body>
+<noscript>
+  <div style="padding:22px;color:#e9ecf1;font:15px system-ui,sans-serif">
+    RideFlow necesita JavaScript: toda la app —rutas, perfil y rodillo— corre en el navegador.
+  </div>
+</noscript>
 
 <header class="topbar">
   <div class="brand">
