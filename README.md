@@ -1,42 +1,82 @@
 # RideFlow
 
-Entrenador indoor instalable en iPad: cargás una ruta GPX, el rodillo
-reproduce su perfil y la app graba lo que hiciste.
+Entrenador indoor con rutas GPX y control de rodillo: cargás una ruta, el
+rodillo reproduce su perfil y la app graba lo que hiciste.
 
 Sin framework, sin paso de compilación, sin dependencias en tiempo de
 ejecución salvo Leaflet para el mapa. Son archivos estáticos: cualquier
 servidor los sirve y el navegador los ejecuta tal cual.
 
-```bash
-node tools/serve.mjs          # http://localhost:8080
+## Empezá por aquí: en el PC, con doble clic
+
+```
+start.cmd
 ```
 
-En el iPad: abrir la dirección de red que imprime el servidor en Safari →
-**Compartir → Añadir a pantalla de inicio**. A partir de ahí arranca a pantalla
-completa, sin barra de direcciones y con su propio icono.
+Eso levanta el servidor y abre la app en Chrome o Edge. Para conectar el
+rodillo: **Ajustes → Rodillo → Rodillo Bluetooth (FTMS) → Conectar**. Si el
+Tacx no sale en el selector, volvé y probá **Tacx FE-C**.
+
+Para que quede como una aplicación de verdad —icono propio, ventana sin barra
+de direcciones, arranque sin red— abrí el menú del navegador e **Instalar
+RideFlow**.
 
 ---
 
-## Lo primero, porque cambia lo que podés esperar
+## Por qué el PC y no el iPad
+
+Las dos vías funcionan, pero no cuestan lo mismo.
+
+| | **PC con Chrome/Edge** | **iPad instalado** |
+|---|---|---|
+| Conexión al rodillo | Directa, Bluetooth del propio equipo | Necesita un puente: otro equipo con Bluetooth encendido al lado |
+| Piezas en marcha | Una: el navegador | Tres: iPad, puente y rodillo |
+| Puntos de fallo | El Bluetooth | El Bluetooth, el WiFi y el puente |
+| Instalable | Sí, como PWA | Sí, a pantalla de inicio |
+| Preparación | Doble clic | Instalar Node en el equipo puente, dejarlo arrancando y fijar su IP |
+
+**La vía conveniente es el PC.** No porque el iPad sea peor pantalla —es mejor—
+sino porque en el PC el Bluetooth está a un clic y en el iPad hace falta un
+intermediario que hay que mantener encendido. Si acabás queriendo el iPad en el
+manillar, el puente ya está implementado y documentado en
+[docs/PUENTE.md](docs/PUENTE.md); el propio PC puede hacer de puente.
+
+### Por qué el iPad necesita puente
 
 **Safari no implementa Web Bluetooth.** En iPad —y en iPhone, y en el Safari de
 macOS— no existe la API, y como iOS obliga a todos los navegadores a usar
-WebKit, instalar Chrome no cambia nada.
-
-Es decir: una PWA en un iPad **no puede conectarse por Bluetooth al rodillo por
-sí misma**. No es un fallo de esta app ni algo que se arregle con permisos.
-
-Lo que sí funciona, y lo que hace esta app:
+WebKit, instalar Chrome allí no cambia nada. No es un fallo de esta app ni algo
+que se arregle con permisos.
 
 | Dónde | Rodillo real | Cómo |
 |---|---|---|
-| iPad (instalada) | **sí**, vía puente | Un equipo cercano pone el Bluetooth → [docs/PUENTE.md](docs/PUENTE.md) |
-| iPad (instalada) | no, simulado | Simulador integrado, para probar rutas y perfiles |
-| Chrome / Edge escritorio | **sí**, directo | Web Bluetooth: FTMS o Tacx FE-C |
-| Android Chrome | **sí**, directo | Igual que en escritorio |
+| **Chrome / Edge en PC** | **sí, directo** | Web Bluetooth: FTMS o Tacx FE-C |
+| Android Chrome | sí, directo | Igual que en escritorio |
+| iPad instalado | sí, vía puente | Un equipo cercano pone el Bluetooth |
+| iPad instalado | no, simulado | Simulador integrado, para probar rutas y perfiles |
 
 Todo lo demás —mapas, GPX, creación de rutas, perfil, grabación, exportación,
 funcionamiento sin red— es nativo en iPad y no depende de nada de esto.
+
+### Requisitos reales del PC
+
+- Radio Bluetooth 4.0 o posterior. Casi cualquier portátil de la última década
+  la tiene; un sobremesa puede necesitar un adaptador USB de 10 €.
+- Chrome o Edge. **Firefox no sirve**: no implementa Web Bluetooth y no tiene
+  intención de hacerlo.
+- La app servida desde `localhost`. Es lo que hace `start.cmd`, y no es un
+  detalle menor: Web Bluetooth y la instalación de la PWA exigen un origen
+  seguro. `localhost` cuenta aunque sea `http`; una IP de red local, no.
+
+### Si preferís el iPad
+
+```bash
+node tools/serve.mjs
+```
+
+Abrí en Safari la dirección de red que imprime el servidor →
+**Compartir → Añadir a pantalla de inicio**. Para el rodillo, levantá el puente
+en el PC y apuntá el iPad a su IP ([docs/PUENTE.md](docs/PUENTE.md)).
 
 ---
 
