@@ -103,6 +103,20 @@ createServer((req, res) => {
     'service-worker-allowed': '/',
   });
   createReadStream(file).pipe(res);
+}).on('error', (err) => {
+  // Sin esto, un puerto ocupado tira una excepción sin manejar, el proceso
+  // muere y el navegador que se abre detrás encuentra la nada: una página en
+  // blanco cuya causa no está escrita en ninguna parte.
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `\nEl puerto ${port} ya está ocupado por otro programa.\n` +
+      `Puede ser otra ventana de RideFlow todavía abierta: cerrala, o arrancá\n` +
+      `en otro puerto con  node tools/serve.mjs ${port + 1}\n`
+    );
+  } else {
+    console.error(`\nNo se pudo abrir el servidor: ${err.message}\n`);
+  }
+  process.exit(1);
 }).listen(port, '0.0.0.0', () => {
   console.log(`\nRideFlow servido en el puerto ${port}\n`);
   console.log(`  local        http://localhost:${port}`);

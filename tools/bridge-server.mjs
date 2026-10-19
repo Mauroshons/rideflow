@@ -494,6 +494,18 @@ function handleMessage(socket, text) {
   }
 }
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `\nEl puerto ${PORT} ya está ocupado: probablemente haya otro relevo\n` +
+      `corriendo de un arranque anterior. Cerrá esa ventana y volvé a probar.\n`
+    );
+  } else {
+    console.error(`\nNo se pudo abrir el relevo: ${err.message}\n`);
+  }
+  process.exit(1);
+});
+
 startBackend()
   .then(() => {
     server.listen(PORT, '0.0.0.0', () => {
