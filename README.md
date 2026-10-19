@@ -9,9 +9,10 @@ servidor los sirve y el navegador los ejecuta tal cual.
 
 ## Empezá por aquí
 
-Está publicada en GitHub Pages, así que no hace falta instalar nada: abrí la
-URL en **Chrome o Edge**, e **Instalar RideFlow** desde el menú del navegador
-para que tenga icono y ventana propia.
+### → **[mauroshons.github.io/rideflow](https://mauroshons.github.io/rideflow/)**
+
+No hace falta instalar nada: abrí esa URL en **Chrome o Edge**, e **Instalar
+RideFlow** desde el menú del navegador para que tenga icono y ventana propia.
 
 Para conectar el rodillo: **Ajustes → Rodillo → Rodillo Bluetooth (FTMS) →
 Conectar**. Si el Tacx no sale en el selector, marcá **Mostrar todos los
