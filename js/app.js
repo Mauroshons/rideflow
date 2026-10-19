@@ -485,11 +485,29 @@ async function renderAdapters() {
 
   const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  $('#adapterHint').textContent = !navigator.bluetooth
-    ? (ios
-      ? 'Safari no implementa Web Bluetooth, así que en iPad el rodillo se controla por Puente (un equipo cercano hace de intermediario) o se usa el Simulador. Mirá docs/PUENTE.md.'
-      : 'Este navegador no expone Web Bluetooth. Probá con Chrome o Edge, o usá el Puente.')
-    : 'Encendé el rodillo y pedaleá un par de segundos antes de conectar: muchos no anuncian hasta que detectan movimiento.';
+  // Servidos por HTTPS, el puente tampoco sirve: un ws:// desde una página
+  // https es contenido mixto y el navegador lo bloquea. Vale más decirlo en
+  // la propia pantalla que dejar que lo descubra fallando.
+  const httpsBlocksBridge = location.protocol === 'https:';
+
+  let hint;
+  if (navigator.bluetooth) {
+    hint = 'Encendé el rodillo y pedaleá un par de segundos antes de conectar: ' +
+      'muchos no anuncian hasta que detectan movimiento.';
+  } else if (ios && httpsBlocksBridge) {
+    hint = 'Safari no implementa Web Bluetooth, y desde esta dirección HTTPS el ' +
+      'Puente tampoco puede funcionar: un ws:// sin cifrar queda bloqueado por ' +
+      'contenido mixto. Desde aquí sólo va el Simulador. Para rodar con el ' +
+      'rodillo: abrí la app en Chrome o Edge en un PC, o serví la app y el ' +
+      'puente desde tu propia red por http.';
+  } else if (ios) {
+    hint = 'Safari no implementa Web Bluetooth, así que en iPad el rodillo se ' +
+      'controla por Puente (un equipo cercano hace de intermediario) o se usa el ' +
+      'Simulador. Mirá docs/PUENTE.md.';
+  } else {
+    hint = 'Este navegador no expone Web Bluetooth. Probá con Chrome o Edge, o usá el Puente.';
+  }
+  $('#adapterHint').textContent = hint;
 }
 
 $('#btnConnect').addEventListener('click', async () => {

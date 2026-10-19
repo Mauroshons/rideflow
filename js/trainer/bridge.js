@@ -38,9 +38,48 @@ export class BridgeAdapter extends TrainerAdapter {
     return this._open();
   }
 
+  /**
+   * Un navegador no abre un WebSocket inseguro desde una página servida por
+   * HTTPS: es contenido mixto y lo bloquea sin intentarlo siquiera. Merece
+   * una comprobación propia porque el fallo que produce es indistinguible de
+   * "el puente no está encendido", y eso manda a cualquiera a depurar la red
+   * equivocada durante media hora.
+   *
+   * La excepción es localhost, que los navegadores tratan como de fiar; pero
+   * si el puente estuviera en el mismo aparato que la pantalla, no haría
+   * falta puente.
+   */
+  _mixedContentProblem() {
+    if (typeof location === 'undefined' || location.protocol !== 'https:') return null;
+    if (!/^ws:\/\//i.test(this.url)) return null;
+
+    let host = '';
+    try {
+      host = new URL(this.url.replace(/^ws/i, 'http')).hostname;
+    } catch {
+      return null; // una URL rota ya la reporta el constructor de WebSocket
+    }
+    if (['localhost', '127.0.0.1', '::1', '[::1]'].includes(host)) return null;
+
+    return (
+      `Esta página está servida por HTTPS (${location.host}) y el puente es ` +
+      `ws:// sin cifrar, así que el navegador lo bloquea por contenido mixto: ` +
+      `ni siquiera llega a intentarlo. Dos salidas: abrir la app desde el ` +
+      `propio equipo por http, o servir el puente por wss:// con un ` +
+      `certificado que este dispositivo acepte. Mirá docs/PUENTE.md.`
+    );
+  }
+
   _open() {
     return new Promise((resolve, reject) => {
       let settled = false;
+
+      const blocked = this._mixedContentProblem();
+      if (blocked) {
+        reject(new Error(blocked));
+        return;
+      }
+
       try {
         this.ws = new WebSocket(this.url);
       } catch (e) {
