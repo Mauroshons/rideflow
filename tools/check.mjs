@@ -79,6 +79,17 @@ const st = profileStats(prof);
 ok('perfil: desnivel acumulado', Math.abs(st.gain - 398) < 10, `+${st.gain} m`);
 ok('perfil: pendiente media coherente', st.avgGrade > 0.08 && st.avgGrade < 0.12,
    `${(st.avgGrade * 100).toFixed(1)}%`);
+// Regresión: el suavizado no debe inventar pendiente donde no la hay.
+// Una rampa perfectamente regular, con los bordes de la ventana cayendo
+// justo sobre las muestras, llegó a dar picos del 13,8 % sobre un 10,4 %
+// real porque la ventana alternaba entre 6 y 7 puntos.
+const clean = Array.from({ length: 400 }, (_, i) => ({
+  lat: 45 + i * 0.00018, lon: 6, ele: 700 + i * 2.08,
+}));
+const cleanStats = profileStats(buildProfile(clean));
+ok('el suavizado no inventa rampas', cleanStats.maxGrade < cleanStats.avgGrade * 1.06,
+   `max ${(cleanStats.maxGrade * 100).toFixed(1)}% vs media ${(cleanStats.avgGrade * 100).toFixed(1)}%`);
+
 const mid = sampleAt(prof, st.distance / 2);
 ok('sampleAt a mitad de ruta', Math.abs(mid.dTotal - st.distance / 2) < 1 && mid.ele > 500);
 ok('sampleAt satura al final', sampleAt(prof, st.distance * 2).done === true);

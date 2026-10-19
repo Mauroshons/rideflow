@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-19T20:10:49.062Z",
+  "generated": "2026-10-19T20:36:37.149Z",
   "routes": [
     {
       "id": "farellones",
@@ -13,11 +13,11 @@
       ],
       "file": "data/routes/farellones.gpx",
       "distance": 31964,
-      "gain": 1438,
+      "gain": 1440,
       "maxGrade": 0.065,
-      "avgGrade": 0.045,
+      "avgGrade": 0.0451,
       "minEle": 901,
-      "maxEle": 2339,
+      "maxEle": 2340,
       "points": 1281,
       "waypoints": [
         {
@@ -70,9 +70,9 @@
       ],
       "file": "data/routes/cuesta-barriga.gpx",
       "distance": 11988,
-      "gain": 524,
+      "gain": 525,
       "maxGrade": 0.067,
-      "avgGrade": 0.0437,
+      "avgGrade": 0.0438,
       "minEle": 481,
       "maxEle": 1005,
       "points": 601,
@@ -103,10 +103,10 @@
       ],
       "file": "data/routes/cajon-del-maipo.gpx",
       "distance": 29980,
-      "gain": 474,
+      "gain": 475,
       "maxGrade": 0.027,
       "avgGrade": 0.0158,
-      "minEle": 966,
+      "minEle": 965,
       "maxEle": 1440,
       "points": 1001,
       "waypoints": [
@@ -148,11 +148,11 @@
       ],
       "file": "data/routes/alpe-dhuez.gpx",
       "distance": 13779,
-      "gain": 1125,
+      "gain": 1130,
       "maxGrade": 0.103,
-      "avgGrade": 0.0817,
-      "minEle": 723,
-      "maxEle": 1847,
+      "avgGrade": 0.082,
+      "minEle": 721,
+      "maxEle": 1850,
       "points": 691,
       "waypoints": [
         {
@@ -217,7 +217,7 @@
       ],
       "file": "data/routes/costanera-concon.gpx",
       "distance": 13995,
-      "gain": 58,
+      "gain": 59,
       "maxGrade": 0.02,
       "avgGrade": 0.0042,
       "minEle": 6,

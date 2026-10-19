@@ -44,11 +44,11 @@ funcionamiento sin red— es nativo en iPad y no depende de nada de esto.
 
 | Ruta | Dónde | Distancia | Desnivel | Media | Para qué |
 |---|---|---|---|---|---|
-| Subida a Farellones | Santiago | 32,0 km | +1438 m | 4,5 % | Resistencia en subida, largo |
-| Cuesta Barriga | R. Metropolitana | 12,0 km | +524 m | 4,4 % | Umbral |
-| Cajón del Maipo | San José de Maipo | 30,0 km | +474 m | 1,6 % | Fondo en Z2 |
-| Alpe d'Huez | Isère, Francia | 13,8 km | +1125 m | 8,2 % | La referencia universal |
-| Costanera Viña — Concón | Valparaíso | 14,0 km | +58 m | 0,4 % | Series en llano |
+| Subida a Farellones | Santiago | 32,0 km | +1440 m | 4,5 % | Resistencia en subida, largo |
+| Cuesta Barriga | R. Metropolitana | 12,0 km | +525 m | 4,4 % | Umbral |
+| Cajón del Maipo | San José de Maipo | 30,0 km | +475 m | 1,6 % | Fondo en Z2 |
+| Alpe d'Huez | Isère, Francia | 13,8 km | +1130 m | 8,2 % | La referencia universal |
+| Costanera Viña — Concón | Valparaíso | 14,0 km | +59 m | 0,4 % | Series en llano |
 
 Cómo están hechas, con honestidad: las coordenadas son anclas reales de cada
 carretera y las cotas son las reales de esos puntos, pero el trazado entre

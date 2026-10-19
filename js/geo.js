@@ -36,27 +36,35 @@ export function bearing(a, b) {
  * fantasma del 20%. Sin esto el rodillo pega tirones absurdos.
  */
 export function smoothElevation(points, windowMeters = 120) {
-  if (points.length < 3) return points.map((p) => p.ele ?? 0);
+  const n = points.length;
+  if (n < 3) return points.map((p) => p.ele ?? 0);
   const cum = cumulativeDistance(points);
-  const out = new Array(points.length);
-  let lo = 0;
-  let hi = 0;
-  let sum = 0;
-  let n = 0;
-  for (let i = 0; i < points.length; i++) {
-    const from = cum[i] - windowMeters / 2;
-    const to = cum[i] + windowMeters / 2;
-    while (hi < points.length && cum[hi] <= to) {
-      sum += points[hi].ele ?? 0;
-      n++;
-      hi++;
+
+  // Sumas de prefijo: cualquier media de un rango sale en tiempo constante.
+  const pre = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) pre[i + 1] = pre[i] + (points[i].ele ?? 0);
+
+  const half = windowMeters / 2;
+  const out = new Array(n);
+
+  for (let i = 0; i < n; i++) {
+    // La ventana tiene que ser simétrica EN NÚMERO DE PUNTOS, no sólo en
+    // distancia. Con puntos regularmente espaciados, los bordes caen justo
+    // encima de una muestra y el redondeo decide si entra o no; eso hace que
+    // la ventana alterne entre 6 y 7 puntos y que la media oscile. Sobre una
+    // rampa limpia, ese diente de sierra se deriva como rampas del 13 % que
+    // no existen: el suavizado acababa inventando justo el ruido que venía
+    // a quitar.
+    let k = 0;
+    while (
+      i - k - 1 >= 0 &&
+      i + k + 1 < n &&
+      cum[i] - cum[i - k - 1] <= half &&
+      cum[i + k + 1] - cum[i] <= half
+    ) {
+      k++;
     }
-    while (lo < points.length && cum[lo] < from) {
-      sum -= points[lo].ele ?? 0;
-      n--;
-      lo++;
-    }
-    out[i] = n > 0 ? sum / n : points[i].ele ?? 0;
+    out[i] = (pre[i + k + 1] - pre[i - k]) / (2 * k + 1);
   }
   return out;
 }
