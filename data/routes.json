@@ -1,0 +1,254 @@
+{
+  "generated": "2026-10-19T20:10:49.062Z",
+  "routes": [
+    {
+      "id": "farellones",
+      "name": "Subida a Farellones",
+      "region": "Santiago, Chile",
+      "desc": "La subida clásica de Santiago. 40 curvas numeradas desde el pie del cerro hasta Farellones. Larga, constante y sin respiro: el test de resistencia en subida por excelencia.",
+      "tags": [
+        "montaña",
+        "largo",
+        "clásico"
+      ],
+      "file": "data/routes/farellones.gpx",
+      "distance": 31964,
+      "gain": 1438,
+      "maxGrade": 0.065,
+      "avgGrade": 0.045,
+      "minEle": 901,
+      "maxEle": 2339,
+      "points": 1281,
+      "waypoints": [
+        {
+          "name": "Inicio · Av. Las Condes",
+          "lat": -33.3621,
+          "lon": -70.5192,
+          "ele": 900
+        },
+        {
+          "name": "Curva 1",
+          "lat": -33.3498,
+          "lon": -70.474,
+          "ele": 1120
+        },
+        {
+          "name": "Curva 15",
+          "lat": -33.351,
+          "lon": -70.425,
+          "ele": 1490
+        },
+        {
+          "name": "Curva 24",
+          "lat": -33.3455,
+          "lon": -70.391,
+          "ele": 1760
+        },
+        {
+          "name": "Curva 32",
+          "lat": -33.343,
+          "lon": -70.358,
+          "ele": 2035
+        },
+        {
+          "name": "Farellones",
+          "lat": -33.3523,
+          "lon": -70.3232,
+          "ele": 2340
+        }
+      ]
+    },
+    {
+      "id": "cuesta-barriga",
+      "name": "Cuesta Barriga",
+      "region": "Región Metropolitana, Chile",
+      "desc": "Doce kilómetros de cuesta corta y nerviosa al poniente de Santiago. Rampas de 8-10% intercaladas con falsos llanos; ideal para trabajo de umbral.",
+      "tags": [
+        "cuesta",
+        "umbral",
+        "medio"
+      ],
+      "file": "data/routes/cuesta-barriga.gpx",
+      "distance": 11988,
+      "gain": 524,
+      "maxGrade": 0.067,
+      "avgGrade": 0.0437,
+      "minEle": 481,
+      "maxEle": 1005,
+      "points": 601,
+      "waypoints": [
+        {
+          "name": "Pie de la cuesta",
+          "lat": -33.5702,
+          "lon": -70.8598,
+          "ele": 480
+        },
+        {
+          "name": "Alto Cuesta Barriga",
+          "lat": -33.5331,
+          "lon": -70.9298,
+          "ele": 1005
+        }
+      ]
+    },
+    {
+      "id": "cajon-del-maipo",
+      "name": "Cajón del Maipo",
+      "region": "San José de Maipo, Chile",
+      "desc": "Río arriba desde San José de Maipo hasta El Volcán. Pendiente suave y sostenida entre 2% y 4%, el terreno perfecto para rodar largo en Z2 sin cortes.",
+      "tags": [
+        "fondo",
+        "z2",
+        "largo"
+      ],
+      "file": "data/routes/cajon-del-maipo.gpx",
+      "distance": 29980,
+      "gain": 474,
+      "maxGrade": 0.027,
+      "avgGrade": 0.0158,
+      "minEle": 966,
+      "maxEle": 1440,
+      "points": 1001,
+      "waypoints": [
+        {
+          "name": "San José de Maipo",
+          "lat": -33.6402,
+          "lon": -70.3503,
+          "ele": 965
+        },
+        {
+          "name": "San Alfonso",
+          "lat": -33.698,
+          "lon": -70.286,
+          "ele": 1150
+        },
+        {
+          "name": "San Gabriel",
+          "lat": -33.765,
+          "lon": -70.223,
+          "ele": 1345
+        },
+        {
+          "name": "El Volcán",
+          "lat": -33.8105,
+          "lon": -70.1862,
+          "ele": 1440
+        }
+      ]
+    },
+    {
+      "id": "alpe-dhuez",
+      "name": "Alpe d'Huez",
+      "region": "Isère, Francia",
+      "desc": "Las 21 curvas. 13,8 km al 8,1% de media desde Bourg d'Oisans. La referencia universal: si la hacés en el rodillo, sabés exactamente dónde estás.",
+      "tags": [
+        "montaña",
+        "mítico",
+        "duro"
+      ],
+      "file": "data/routes/alpe-dhuez.gpx",
+      "distance": 13779,
+      "gain": 1125,
+      "maxGrade": 0.103,
+      "avgGrade": 0.0817,
+      "minEle": 723,
+      "maxEle": 1847,
+      "points": 691,
+      "waypoints": [
+        {
+          "name": "Bourg d'Oisans",
+          "lat": 45.0548,
+          "lon": 6.0298,
+          "ele": 720
+        },
+        {
+          "name": "Virage 21",
+          "lat": 45.0565,
+          "lon": 6.0355,
+          "ele": 790
+        },
+        {
+          "name": "Virage 18",
+          "lat": 45.0612,
+          "lon": 6.044,
+          "ele": 945
+        },
+        {
+          "name": "Virage 14",
+          "lat": 45.0695,
+          "lon": 6.0535,
+          "ele": 1170
+        },
+        {
+          "name": "Virage 10",
+          "lat": 45.0768,
+          "lon": 6.0635,
+          "ele": 1395
+        },
+        {
+          "name": "Virage 7 · Huez",
+          "lat": 45.0822,
+          "lon": 6.069,
+          "ele": 1530
+        },
+        {
+          "name": "Virage 3",
+          "lat": 45.0898,
+          "lon": 6.0718,
+          "ele": 1735
+        },
+        {
+          "name": "Alpe d'Huez",
+          "lat": 45.0922,
+          "lon": 6.0708,
+          "ele": 1850
+        }
+      ]
+    },
+    {
+      "id": "costanera-concon",
+      "name": "Costanera Viña — Concón",
+      "region": "Valparaíso, Chile",
+      "desc": "Borde costero plano con toboganes cortos entre Reñaca y Concón. Pensada para series: la pendiente casi nunca pasa de 3%, así que el ritmo lo pone el motor, no el cerro.",
+      "tags": [
+        "plano",
+        "series",
+        "corto"
+      ],
+      "file": "data/routes/costanera-concon.gpx",
+      "distance": 13995,
+      "gain": 58,
+      "maxGrade": 0.02,
+      "avgGrade": 0.0042,
+      "minEle": 6,
+      "maxEle": 32,
+      "points": 701,
+      "waypoints": [
+        {
+          "name": "Viña del Mar · Caleta Abarca",
+          "lat": -33.0172,
+          "lon": -71.5502,
+          "ele": 6
+        },
+        {
+          "name": "Reñaca",
+          "lat": -32.992,
+          "lon": -71.5545,
+          "ele": 22
+        },
+        {
+          "name": "Las Salinas de Concón",
+          "lat": -32.958,
+          "lon": -71.542,
+          "ele": 32
+        },
+        {
+          "name": "Concón",
+          "lat": -32.9232,
+          "lon": -71.5288,
+          "ele": 20
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>RideFlow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="description" content="Entrenador indoor con rutas GPX y control de rodillo.">
+<meta name="theme-color" content="#0d0f13">
+
+<!-- iPad: pantalla completa al añadir a la pantalla de inicio -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RideFlow">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">RideFlow</span>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab is-active" data-view="routes" role="tab">Rutas</button>
+    <button class="tab" data-view="ride" role="tab">Rodar</button>
+    <button class="tab" data-view="create" role="tab">Crear</button>
+    <button class="tab" data-view="history" role="tab">Historial</button>
+    <button class="tab" data-view="settings" role="tab">Ajustes</button>
+  </nav>
+
+  <button id="connChip" class="conn-chip is-off" aria-live="polite">
+    <span class="dot"></span><span id="connText">Sin rodillo</span>
+  </button>
+</header>
+
+<main>
+
+<!-- ───────────────────────────── RUTAS ───────────────────────────── -->
+<section class="view is-active" id="view-routes">
+  <div class="view-head">
+    <h1>Rutas</h1>
+    <div class="view-actions">
+      <label class="btn">
+        Importar GPX
+        <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml" multiple hidden>
+      </label>
+      <button class="btn" data-goto="create">Crear ruta</button>
+    </div>
+  </div>
+  <p class="hint" id="routesHint">Cinco rutas vienen cargadas. Importá las tuyas desde Archivos o dibujalas en el mapa.</p>
+  <div class="route-grid" id="routeGrid"></div>
+</section>
+
+<!-- ───────────────────────────── RODAR ───────────────────────────── -->
+<section class="view" id="view-ride">
+  <div class="ride-empty" id="rideEmpty">
+    <h2>Elegí una ruta</h2>
+    <p>Abrí la pestaña Rutas y tocá <em>Rodar</em> en la que quieras hacer.</p>
+    <button class="btn btn-primary" data-goto="routes">Ver rutas</button>
+  </div>
+
+  <div class="ride" id="rideBody" hidden>
+    <div class="ride-metrics">
+      <div class="metric metric-hero">
+        <span class="metric-label">Potencia</span>
+        <span class="metric-value" id="mPower">0</span>
+        <span class="metric-unit">W <em id="mZone"></em></span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Cadencia</span>
+        <span class="metric-value" id="mCadence">0</span>
+        <span class="metric-unit">rpm</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Pendiente</span>
+        <span class="metric-value" id="mGrade">0,0</span>
+        <span class="metric-unit">%</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Velocidad</span>
+        <span class="metric-value" id="mSpeed">0,0</span>
+        <span class="metric-unit">km/h</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Pulso</span>
+        <span class="metric-value" id="mHr">—</span>
+        <span class="metric-unit">ppm</span>
+      </div>
+    </div>
+
+    <div class="ride-main">
+      <div class="ride-map" id="rideMap"></div>
+      <aside class="ride-stats">
+        <h2 id="rideRouteName">Ruta</h2>
+        <dl>
+          <div><dt>Recorrido</dt><dd><span id="sDist">0,00</span> km</dd></div>
+          <div><dt>Restante</dt><dd><span id="sRemain">0,0</span> km</dd></div>
+          <div><dt>Tiempo</dt><dd id="sTime">0:00</dd></div>
+          <div><dt>Llegada en</dt><dd id="sEta">—</dd></div>
+          <div><dt>Altitud</dt><dd><span id="sEle">0</span> m</dd></div>
+          <div><dt>Media</dt><dd><span id="sAvg">0</span> W</dd></div>
+          <div><dt>Normalizada</dt><dd><span id="sNp">0</span> W</dd></div>
+          <div><dt>Trabajo</dt><dd><span id="sKj">0</span> kJ</dd></div>
+        </dl>
+        <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+      </aside>
+    </div>
+
+    <div class="ride-profile">
+      <canvas id="profileCanvas"></canvas>
+    </div>
+
+    <div class="ride-controls">
+      <button class="btn btn-primary" id="btnStart">Empezar</button>
+      <button class="btn" id="btnPause" disabled>Pausa</button>
+      <button class="btn" id="btnLap" disabled>Vuelta</button>
+      <button class="btn" id="btnFinish" disabled>Terminar</button>
+
+      <div class="mode-group" role="group" aria-label="Modo de resistencia">
+        <button class="seg is-active" data-mode="slope">Pendiente</button>
+        <button class="seg" data-mode="erg">ERG</button>
+        <button class="seg" data-mode="resistance">Fija</button>
+      </div>
+
+      <label class="slider" id="ergWrap" hidden>
+        <span>Objetivo <b id="ergValue">200</b> W</span>
+        <input type="range" id="ergRange" min="60" max="500" step="5" value="200">
+      </label>
+
+      <label class="slider" id="resWrap" hidden>
+        <span>Resistencia <b id="resValue">30</b> %</span>
+        <input type="range" id="resRange" min="0" max="100" step="5" value="30">
+      </label>
+
+      <label class="slider" id="simWrap" hidden>
+        <span>Esfuerzo simulado <b id="simValue">72</b> % FTP</span>
+        <input type="range" id="simRange" min="35" max="150" step="1" value="72">
+      </label>
+
+      <label class="check"><input type="checkbox" id="followToggle" checked> Seguir en el mapa</label>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── CREAR ───────────────────────────── -->
+<section class="view" id="view-create">
+  <div class="view-head">
+    <h1>Crear ruta</h1>
+    <div class="view-actions">
+      <button class="btn" id="btnUndoPoint">Deshacer punto</button>
+      <button class="btn" id="btnClearPoints">Vaciar</button>
+      <button class="btn btn-primary" id="btnSaveRoute">Guardar ruta</button>
+    </div>
+  </div>
+  <p class="hint">Tocá el mapa para ir poniendo puntos. Después asignale una altitud a cada uno: sin cotas la ruta sale llana y el rodillo no tendrá nada que simular.</p>
+
+  <div class="create-grid">
+    <div class="create-map" id="createMap"></div>
+    <aside class="create-side">
+      <label class="field">
+        <span>Nombre</span>
+        <input type="text" id="newRouteName" placeholder="Mi ruta de los martes">
+      </label>
+      <label class="field">
+        <span>Notas</span>
+        <textarea id="newRouteDesc" rows="2" placeholder="Qué tiene de especial"></textarea>
+      </label>
+      <div class="create-summary" id="createSummary">Sin puntos todavía.</div>
+      <ol class="point-list" id="pointList"></ol>
+    </aside>
+  </div>
+</section>
+
+<!-- ─────────────────────────── HISTORIAL ─────────────────────────── -->
+<section class="view" id="view-history">
+  <div class="view-head"><h1>Historial</h1></div>
+  <div class="session-list" id="sessionList"></div>
+</section>
+
+<!-- ──────────────────────────── AJUSTES ──────────────────────────── -->
+<section class="view" id="view-settings">
+  <div class="view-head"><h1>Ajustes</h1></div>
+
+  <div class="settings-grid">
+    <fieldset>
+      <legend>Rodillo</legend>
+      <div class="adapter-list" id="adapterList"></div>
+      <label class="field">
+        <span>Dirección del puente</span>
+        <input type="text" id="bridgeUrl" placeholder="ws://192.168.1.50:8787">
+      </label>
+      <div class="row">
+        <button class="btn btn-primary" id="btnConnect">Conectar</button>
+        <button class="btn" id="btnDisconnect">Desconectar</button>
+      </div>
+      <p class="hint" id="adapterHint"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Ciclista</legend>
+      <label class="field"><span>Peso del ciclista (kg)</span><input type="number" id="setRiderKg" min="35" max="160" step="0.5"></label>
+      <label class="field"><span>Peso de la bici (kg)</span><input type="number" id="setBikeKg" min="4" max="25" step="0.1"></label>
+      <label class="field"><span>FTP (W)</span><input type="number" id="setFtp" min="60" max="600" step="5"></label>
+      <label class="field">
+        <span>Dificultad de pendiente: <b id="diffValue">100</b> %</span>
+        <input type="range" id="setDifficulty" min="25" max="150" step="5">
+      </label>
+      <p class="hint">Al 50 %, una rampa del 12 % llega al rodillo como un 6 %. Es el ajuste que hace falta si tu desarrollo más corto no da para un puerto de verdad.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Modelo físico</legend>
+      <label class="field"><span>Coeficiente de rodadura (Crr)</span><input type="number" id="setCrr" min="0.002" max="0.012" step="0.0005"></label>
+      <label class="field"><span>Área frontal efectiva (CdA, m²)</span><input type="number" id="setCda" min="0.18" max="0.6" step="0.01"></label>
+      <p class="hint">0,32 equivale a manos en la parte alta del manillar; 0,25, a posición aero. Afecta a la velocidad virtual, no a la resistencia que sentís.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Diagnóstico</legend>
+      <div class="row">
+        <button class="btn" id="btnTestRamp">Probar rampa 0→10 %</button>
+        <button class="btn" id="btnClearLog">Limpiar</button>
+      </div>
+      <pre class="log" id="logBox"></pre>
+      <p class="hint" id="storageHint"></p>
+    </fieldset>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
