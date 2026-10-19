@@ -522,7 +522,13 @@ $('#btnConnect').addEventListener('click', async () => {
       showAllDevices: $('#showAllDevices').checked,
     });
     app.settings = Settings.save({ bridgeUrl: $('#bridgeUrl').value.trim() });
-    toast(`Conectado: ${app.trainer.adapter.deviceName}.`);
+    // Con un puente, llegar al puente y que el puente tenga rodillo son dos
+    // cosas distintas. Decir "Conectado" cuando aún no hay rodillo manda al
+    // usuario a la pantalla de rodaje a pelearse con un Empezar que no va.
+    toast(app.trainer.connected
+      ? `Conectado: ${app.trainer.adapter.deviceName}.`
+      : 'Puente conectado. Falta que el proveedor enganche el rodillo: ' +
+        'andá al PC y dale a "Conectar rodillo".');
     await requestPersistence();
   } catch (err) {
     toast(connectErrorMessage(err, id), 'error');

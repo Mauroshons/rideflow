@@ -12,10 +12,31 @@
  *    muchos y no tiene sentido precargarlos.
  */
 
-const VERSION = 'rideflow-v1';
+/**
+ * Subí este número en cada despliegue que toque código.
+ *
+ * Tenerlo fijo fue un error caro: el nombre de la caché no cambiaba nunca,
+ * así que un dispositivo que ya hubiera visitado la app seguía sirviéndose
+ * de la copia vieja para siempre. Y como la instalación cachea archivo por
+ * archivo ignorando los fallos, podía quedar un index.html viejo junto a un
+ * app.js nuevo: una mezcla que no es ninguna de las dos versiones y que
+ * revienta de formas difíciles de entender.
+ */
+const VERSION = 'rideflow-v2';
 const SHELL = `${VERSION}-shell`;
 const TILES = `${VERSION}-tiles`;
 const MAX_TILES = 600;
+
+/**
+ * El código y el documento van por red primero.
+ *
+ * Para los datos y los iconos, servir de caché y refrescar por detrás está
+ * bien: un GPX no cambia de significado. Para el HTML y el JavaScript no,
+ * porque una versión mezclada es peor que una vieja y peor que ninguna. Con
+ * red se sirve siempre lo actual; sin red, la última copia buena, que sigue
+ * siendo coherente entre sí.
+ */
+const NETWORK_FIRST = /\.(?:html|js|css|webmanifest)$|\/$/i;
 
 const SHELL_ASSETS = [
   './',
@@ -95,6 +116,24 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function shellStrategy(request) {
+  const url = new URL(request.url);
+  const codeOrDocument =
+    request.mode === 'navigate' || NETWORK_FIRST.test(url.pathname);
+
+  if (codeOrDocument) {
+    try {
+      return await fetchAndStore(request, SHELL);
+    } catch {
+      const cached = await caches.match(request, { ignoreSearch: true });
+      if (cached) return cached;
+      if (request.mode === 'navigate') {
+        const fallback = await caches.match('index.html');
+        if (fallback) return fallback;
+      }
+      throw new Error(`sin red y sin copia de ${url.pathname}`);
+    }
+  }
+
   const cached = await caches.match(request, { ignoreSearch: true });
   if (cached) {
     // Refresco en segundo plano: la próxima carga ya trae lo nuevo.

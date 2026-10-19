@@ -114,8 +114,19 @@ export class BridgeAdapter extends TrainerAdapter {
         if (msg.type === 'status') {
           Object.assign(this.supports, msg.supports ?? {});
           this.setConnected(!!msg.connected, msg.deviceName ?? 'Puente');
-          if (!settled && msg.connected) {
+
+          // Conectar con el puente y que el puente tenga rodillo son dos
+          // cosas distintas, y confundirlas rompía el orden natural de
+          // puesta en marcha: con un relevo, lo normal es enchufar primero
+          // la pantalla y después el rodillo. Si sólo resolviéramos cuando
+          // ya hay rodillo, ese orden daba un "el puente no respondió" a
+          // pesar de que el puente había respondido perfectamente.
+          if (!settled) {
             settled = true;
+            clearTimeout(timeout);
+            if (!msg.connected) {
+              this.log('Puente conectado, pero todavía sin rodillo al otro lado.', 'warn');
+            }
             resolve(this);
           }
         } else if (msg.type === 'data') {
