@@ -20,7 +20,54 @@ Las salidas reales son tres:
 
 Este documento cubre la primera.
 
-## Cómo funciona
+## La vía corta: el relevo con Chrome
+
+Si tu equipo es un Windows con Chrome, **no instales nada**. Doble clic en:
+
+```
+start-ipad.cmd
+```
+
+Levanta las tres piezas y te abre la página del proveedor, que te dice
+exactamente qué dirección abrir en el iPad. Después:
+
+1. En el iPad, abrí en Safari la dirección `http://…` que te muestre.
+2. **Ajustes → Rodillo → Puente en red local**, pegá el `ws://…` y Conectar.
+3. Volvé al PC y dale a **Conectar rodillo**.
+
+### Por qué un relevo y no BLE en Node
+
+Hablar Bluetooth desde Node en Windows significa `@abandonware/noble`, que
+pide herramientas de compilación nativas y da bastante guerra. Pero en ese
+mismo PC ya hay algo que habla Bluetooth de maravilla: Chrome. Así que se
+invierte el reparto.
+
+```
+┌──────────┐  WebSocket   ┌──────────────┐  WebSocket  ┌──────────────┐  BLE  ┌───────────┐
+│  iPad    │ ───────────► │ Relevo (node)│ ◄────────── │ Chrome en PC │ ────► │ Tacx Flow │
+│ pantalla │ ◄─────────── │  centralita  │ ──────────► │  provider.html│ ◄──── │           │
+└──────────┘              └──────────────┘             └──────────────┘       └───────────┘
+   consignas ↑                                              ↑ telemetría
+```
+
+Node queda reducido a pasar mensajes, que es lo que se le da bien, y no hay
+una sola línea de BLE nativo en toda la cadena. El proveedor reutiliza los
+mismos adaptadores que la app —FTMS con su caída automática a FE-C— así que
+no hay protocolo nuevo que mantener: `provider.html` es la app sin pantalla
+de rodaje, puesta al servicio de otra pantalla.
+
+La página del proveedor muestra los tres eslabones en vivo (relevo, rodillo,
+iPad) para que de un vistazo se vea cuál falta.
+
+### Importante: el iPad tiene que cargar la app por http
+
+Desde una página servida por `https://` —la de GitHub Pages, por ejemplo— el
+navegador **bloquea** cualquier WebSocket `ws://` por contenido mixto, y ni
+siquiera intenta conectar. Por eso el iPad tiene que abrir la app desde el
+propio PC por http. Lo que se pierde a cambio: el service worker y, con él,
+el modo sin conexión. La pantalla de inicio de iOS sigue funcionando.
+
+## La vía larga: BLE o ANT+ desde el propio puente
 
 ```
 ┌──────────┐   WebSocket (WiFi)    ┌─────────────────┐   BLE / ANT+   ┌───────────┐
@@ -74,7 +121,7 @@ JSON plano sobre WebSocket, sin ceremonias. Del iPad al puente:
 
 | Mensaje | Campos | Efecto |
 |---|---|---|
-| `hello` | `client`, `version` | Presentación; el puente responde con `status` |
+| `hello` | `client`, `version`, `role` | Presentación; el puente responde con `status`. Con `role: "provider"` el cliente queda como proveedor Bluetooth del relevo |
 | `setSlope` | `grade` (fracción), `crr`, `cw` | Modo pendiente |
 | `setTargetPower` | `watts` | Modo ERG |
 | `setResistance` | `percent` (0-100) | Resistencia fija |
@@ -89,6 +136,13 @@ Del puente al iPad:
 | `data` | `power`, `cadence`, `hr`, `trainerSpeed` (todos opcionales) |
 | `log` | `message`, `level` |
 | `error` | `message` |
+| `peers` | `consumers` | Sólo al proveedor: cuántas pantallas cuelgan de él |
+
+En modo relevo, el proveedor manda `status`, `data` y `log` hacia arriba —son
+lo que informa el rodillo, no órdenes— y recibe las consignas que mandan los
+consumidores. Sólo puede haber un proveedor: si llega otro, el anterior queda
+relevado y se le retira el rol, porque lo habitual es que sea la misma
+pestaña recargada y no dos rodillos.
 
 Las muestras de `data` llegan parciales a propósito: el rodillo manda potencia
 y cadencia, la banda manda pulso, y cada uno a su ritmo. El cliente las

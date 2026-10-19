@@ -100,6 +100,18 @@ function broadcast(obj) {
   }
 }
 
+/** Como broadcast, pero sin devolverle al proveedor lo que él mismo mandó. */
+function broadcastToConsumers(obj) {
+  const frame = encodeFrame(JSON.stringify(obj));
+  for (const sock of clients) {
+    if (sock.role !== 'provider' && !sock.destroyed) sock.write(frame);
+  }
+}
+
+function send(socket, obj) {
+  if (!socket.destroyed) socket.write(encodeFrame(JSON.stringify(obj)));
+}
+
 const log = (message, level = 'info') => {
   console.log(`[${new Date().toISOString().slice(11, 19)}] ${message}`);
   broadcast({ type: 'log', message, level });
@@ -243,7 +255,41 @@ async function antBackend() {
   );
 }
 
-const BACKENDS = { sim: simBackend, ble: bleBackend, ant: antBackend };
+/**
+ * Relevo: el Bluetooth no lo pone este proceso, lo pone un navegador.
+ *
+ * En Windows, hablar BLE desde Node significa @abandonware/noble, que pide
+ * herramientas de compilación nativas y da bastante guerra. Pero en ese mismo
+ * PC ya hay un navegador que habla Bluetooth de maravilla: Chrome. Así que se
+ * invierte el reparto. Chrome abre provider.html, se conecta al rodillo por
+ * Web Bluetooth y se registra aquí como "proveedor"; el iPad se conecta como
+ * "consumidor"; y este proceso no hace más que pasar mensajes de un lado a
+ * otro.
+ *
+ * Node queda reducido a una centralita, que es justo lo que se le da bien, y
+ * no hay una sola línea de BLE nativo en toda la cadena.
+ */
+function relayBackend() {
+  return {
+    name: 'esperando proveedor',
+    relay: true,
+    provider: null,
+    supports: {},
+    // Las consignas se reenvían tal cual al proveedor. Si todavía no hay
+    // ninguno, se descartan en silencio: el iPad puede estar abierto antes
+    // de que Chrome se haya conectado al rodillo, y no es un error.
+    forward(msg) {
+      if (this.provider && !this.provider.destroyed) send(this.provider, msg);
+    },
+    setSlope(grade, crr, cw) { this.forward({ type: 'setSlope', grade, crr, cw }); },
+    setTargetPower(watts) { this.forward({ type: 'setTargetPower', watts }); },
+    setResistance(percent) { this.forward({ type: 'setResistance', percent }); },
+    setRider(rider) { this.forward({ type: 'setRider', ...rider }); },
+    close() {},
+  };
+}
+
+const BACKENDS = { sim: simBackend, ble: bleBackend, ant: antBackend, relay: relayBackend };
 
 /* ------------------------------------------------------------------ *
  *  Arranque
@@ -284,16 +330,13 @@ server.on('upgrade', (req, socket) => {
   );
   socket.setNoDelay(true);
   socket.id = randomUUID().slice(0, 8);
+  socket.role = 'consumer';   // hasta que un hello diga lo contrario
   clients.add(socket);
   log(`Cliente ${socket.id} conectado (${clients.size} en total).`);
 
   // Lo primero que necesita la app es saber si hay rodillo al otro lado.
-  socket.write(encodeFrame(JSON.stringify({
-    type: 'status',
-    connected: !!trainer,
-    deviceName: trainer?.name ?? null,
-    supports: trainer?.supports ?? {},
-  })));
+  send(socket, currentStatus());
+  notifyPeers();
 
   let buffer = Buffer.alloc(0);
   socket.on('data', (chunk) => {
@@ -317,13 +360,62 @@ server.on('upgrade', (req, socket) => {
     buffer = buffer.subarray(consumed);
   });
 
+  // Un socket promocionado a WebSocket emite "end" cuando el otro lado se
+  // va, no "close": como nadie cierra el lado de escritura, la conexión se
+  // queda medio abierta y "close" no llega nunca. Escuchar sólo close deja
+  // clientes muertos en la lista para siempre y, peor, al relevo creyendo
+  // que todavía tiene proveedor. Así que se escuchan los tres y se destruye
+  // el socket a mano, con guarda para no entrar dos veces.
+  let dropped = false;
   const drop = () => {
+    if (dropped) return;
+    dropped = true;
     clients.delete(socket);
+    socket.destroy();
+    if (trainer?.relay && trainer.provider === socket) {
+      // Si se va el proveedor, el iPad tiene que enterarse: su pantalla
+      // seguiría mostrando los últimos vatios como si nada.
+      trainer.provider = null;
+      trainer.name = 'esperando proveedor';
+      trainer.supports = {};
+      log('El proveedor se desconectó: ya no hay rodillo al otro lado.', 'warn');
+      broadcastToConsumers(currentStatus());
+    }
     log(`Cliente ${socket.id} desconectado (${clients.size} restantes).`);
+    notifyPeers();
   };
+  socket.on('end', drop);
   socket.on('close', drop);
   socket.on('error', drop);
 });
+
+/**
+ * Le dice al proveedor cuántas pantallas hay colgadas de él.
+ *
+ * Antes el proveedor lo deducía con una expresión regular sobre el texto del
+ * registro, que está en español y escrito para humanos: cambiar una palabra
+ * de un mensaje habría roto el contador sin que nada avisara. Un mensaje
+ * explícito cuesta cuatro líneas y no se rompe.
+ */
+function notifyPeers() {
+  if (!trainer?.relay || !trainer.provider) return;
+  let consumers = 0;
+  for (const s of clients) if (s.role !== 'provider' && !s.destroyed) consumers++;
+  send(trainer.provider, { type: 'peers', consumers });
+}
+
+/** El estado que se le manda a un consumidor recién llegado. */
+function currentStatus() {
+  const relayReady = trainer?.relay
+    ? !!trainer.provider && !!trainer.providerConnected
+    : true;
+  return {
+    type: 'status',
+    connected: !!trainer && relayReady,
+    deviceName: trainer?.name ?? null,
+    supports: trainer?.supports ?? {},
+  };
+}
 
 function handleMessage(socket, text) {
   let msg;
@@ -333,11 +425,53 @@ function handleMessage(socket, text) {
     return;
   }
   if (!trainer) {
-    socket.write(encodeFrame(JSON.stringify({ type: 'error', message: 'El puente no tiene rodillo.' })));
+    send(socket, { type: 'error', message: 'El puente no tiene rodillo.' });
     return;
   }
+
+  // Mensajes del proveedor: no son órdenes, son lo que el rodillo informa.
+  // Se reenvían a los consumidores tal cual.
+  if (socket.role === 'provider') {
+    if (msg.type === 'status') {
+      // El proveedor dice si ÉL tiene rodillo. Estar conectado al relevo no
+      // significa haber encontrado el Tacx todavía.
+      trainer.providerConnected = !!msg.connected;
+      trainer.name = msg.deviceName ?? 'Rodillo';
+      trainer.supports = msg.supports ?? {};
+      log(
+        msg.connected
+          ? `El proveedor enganchó con ${trainer.name}.`
+          : 'El proveedor está conectado pero aún sin rodillo.'
+      );
+      broadcastToConsumers(currentStatus());
+    } else if (msg.type === 'data' || msg.type === 'log') {
+      broadcastToConsumers(msg);
+    }
+    return;
+  }
+
   switch (msg.type) {
     case 'hello':
+      // Un proveedor se identifica al presentarse. Sólo puede haber uno: si
+      // llega un segundo, se queda el nuevo y se avisa, porque lo normal es
+      // que sea la misma pestaña recargada y no dos rodillos.
+      if (msg.role === 'provider' && trainer.relay) {
+        const previous = trainer.provider;
+        if (previous && previous !== socket && !previous.destroyed) {
+          send(previous, { type: 'error', message: 'Otro proveedor tomó el relevo.' });
+          // Y se le quita el rol: si no, el relevado sigue contando como
+          // proveedor y su telemetría se mezcla con la del nuevo, que es un
+          // enredo imposible de diagnosticar desde el iPad.
+          previous.role = 'retired';
+          log(`El proveedor ${previous.id} queda relevado por ${socket.id}.`, 'warn');
+        }
+        socket.role = 'provider';
+        trainer.provider = socket;
+        trainer.providerConnected = false;
+        log(`Cliente ${socket.id} es ahora el proveedor Bluetooth.`);
+        broadcastToConsumers(currentStatus());
+        notifyPeers();
+      }
       break;
     case 'setSlope':
       trainer.setSlope(msg.grade ?? 0, msg.crr, msg.cw);

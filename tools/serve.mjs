@@ -36,8 +36,49 @@ const TYPES = {
   '.md': 'text/markdown; charset=utf-8',
 };
 
+/**
+ * Las direcciones IPv4 de este equipo, ordenadas por lo probable que es que
+ * sean la buena.
+ *
+ * Un PC cualquiera tiene más direcciones de las que uno cree: adaptadores
+ * virtuales de VMware o VirtualBox, conmutadores de Hyper-V, y direcciones
+ * 169.254.x que Windows se inventa cuando una interfaz no consiguió DHCP y
+ * que no encaminan a ninguna parte. Ofrecerlas todas en pie de igualdad es
+ * pedirle al usuario que acierte de cuatro, así que las marcamos.
+ */
+function localAddresses() {
+  const virtual = /vmware|virtualbox|vbox|hyper-v|vethernet|loopback|tailscale|zerotier|docker/i;
+  const out = [];
+  for (const [name, addrs] of Object.entries(networkInterfaces())) {
+    for (const a of addrs ?? []) {
+      if (a.family !== 'IPv4' || a.internal) continue;
+      const linkLocal = a.address.startsWith('169.254.');
+      out.push({
+        interface: name,
+        address: a.address,
+        likely: !linkLocal && !virtual.test(name),
+        why: linkLocal ? 'sin DHCP, no encamina' : virtual.test(name) ? 'adaptador virtual' : null,
+      });
+    }
+  }
+  // Las probables primero; entre ellas, el WiFi antes que el resto, porque
+  // el iPad va por WiFi y conviene que compartan red.
+  const rank = (a) => (a.likely ? 0 : 2) + (/wi-?fi|wlan|wireless/i.test(a.interface) ? -1 : 0);
+  return out.sort((a, b) => rank(a) - rank(b));
+}
+
 createServer((req, res) => {
   const urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+
+  // La página del proveedor pregunta por aquí qué dirección tiene que abrir
+  // el iPad. El navegador no puede saberlo, y hacer que el usuario la
+  // busque a mano es la forma más fácil de que se equivoque de interfaz.
+  if (urlPath === '/__net') {
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(JSON.stringify({ port, addresses: localAddresses() }));
+    return;
+  }
+
   let file = join(root, normalize(urlPath).replace(/^(\.\.[/\\])+/, ''));
 
   // Nadie sale del directorio del proyecto.
@@ -65,12 +106,9 @@ createServer((req, res) => {
 }).listen(port, '0.0.0.0', () => {
   console.log(`\nRideFlow servido en el puerto ${port}\n`);
   console.log(`  local        http://localhost:${port}`);
-  for (const [name, addrs] of Object.entries(networkInterfaces())) {
-    for (const a of addrs ?? []) {
-      if (a.family === 'IPv4' && !a.internal) {
-        console.log(`  ${name.padEnd(12)} http://${a.address}:${port}`);
-      }
-    }
+  for (const a of localAddresses()) {
+    const tag = a.likely ? '' : `   (${a.why})`;
+    console.log(`  ${a.interface.padEnd(14).slice(0, 14)} http://${a.address}:${port}${tag}`);
   }
   console.log('\nEn el iPad: abrir una de las direcciones de red en Safari →');
   console.log('Compartir → Añadir a pantalla de inicio.\n');

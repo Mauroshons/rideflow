@@ -23,6 +23,8 @@ const SHELL_ASSETS = [
   'manifest.webmanifest',
   'css/styles.css',
   'js/app.js',
+  'provider.html',
+  'js/provider.js',
   'js/geo.js',
   'js/gpx.js',
   'js/physics.js',

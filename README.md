@@ -102,15 +102,23 @@ funcionamiento sin red— es nativo en iPad y no depende de nada de esto.
   detalle menor: Web Bluetooth y la instalación de la PWA exigen un origen
   seguro. `localhost` cuenta aunque sea `http`; una IP de red local, no.
 
-### Si preferís el iPad
+### Si querés el iPad en el manillar y el rodillo de verdad
 
-```bash
-node tools/serve.mjs
+```
+start-ipad.cmd
 ```
 
-Abrí en Safari la dirección de red que imprime el servidor →
-**Compartir → Añadir a pantalla de inicio**. Para el rodillo, levantá el puente
-en el PC y apuntá el iPad a su IP ([docs/PUENTE.md](docs/PUENTE.md)).
+Levanta el servidor, el relevo y la página del proveedor. Esa página te dice
+qué dirección abrir en el iPad y te deja conectar el rodillo desde el PC.
+
+El truco es que **el Bluetooth lo pone Chrome, no Node**: en Windows, hablar
+BLE desde Node pide herramientas de compilación nativas, mientras que en ese
+mismo PC ya hay un navegador que habla Bluetooth sin más. Así que Chrome se
+conecta al Tacx y el relevo sólo pasa mensajes. Detalles en
+[docs/PUENTE.md](docs/PUENTE.md).
+
+Recordá que por esta vía el iPad carga la app por http desde tu PC, no desde
+Pages, así que no tendrás modo sin conexión.
 
 ---
 

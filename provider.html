@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>RideFlow · Proveedor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pone el Bluetooth del PC al servicio del iPad.">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  /* Esta pantalla se deja abierta en un rincón y se mira de reojo, así que
+     prioriza una cosa: que desde lejos se vea si la cadena está entera. */
+  body { overflow: auto; }
+  .prov { max-width: 760px; margin: 0 auto; padding: 24px 18px 40px; }
+  .chain { display: flex; flex-direction: column; gap: 8px; margin: 18px 0; }
+  .link {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-raised); border: 1px solid var(--line);
+    border-left: 4px solid var(--line);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .link.ok { border-left-color: var(--good); }
+  .link.bad { border-left-color: var(--bad); }
+  .link.wait { border-left-color: var(--warn); }
+  .link .what { font-weight: 600; }
+  .link .detail { color: var(--text-dim); font-size: 13px; }
+  .link .state { margin-left: auto; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+  .live { display: flex; gap: 22px; flex-wrap: wrap; margin: 6px 0 18px; }
+  .live div { display: flex; flex-direction: column; }
+  .live b { font-size: 30px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .live span { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; }
+  .addr { background: var(--bg-sunken); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .addr h2 { margin-bottom: 8px; }
+  .addr code {
+    display: inline-block; font: 15px ui-monospace, Menlo, monospace;
+    background: #22262e; padding: 4px 9px; border-radius: 6px; margin: 3px 0;
+    user-select: all;
+  }
+  .addr ol { margin: 10px 0 0; padding-left: 20px; color: var(--text-dim); font-size: 13px; }
+  .addr li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-mark"></span><span class="brand-name">RideFlow · Proveedor</span></div>
+  <span class="conn-chip is-off" id="chip" style="margin-left:auto"><span class="dot"></span><span id="chipText">Sin rodillo</span></span>
+</header>
+
+<main class="prov">
+  <h1>Este PC pone el Bluetooth</h1>
+  <p class="hint">
+    Safari no implementa Web Bluetooth, así que el iPad no puede hablar con el
+    rodillo. Esta pestaña sí: se conecta al Tacx por Bluetooth y le pasa la
+    telemetría al iPad por la red local. Dejala abierta mientras rodás.
+  </p>
+
+  <div class="chain">
+    <div class="link" id="linkRelay">
+      <div><div class="what">Relevo</div><div class="detail" id="relayDetail">conectando…</div></div>
+      <div class="state" id="relayState">—</div>
+    </div>
+    <div class="link" id="linkTrainer">
+      <div><div class="what">Rodillo</div><div class="detail" id="trainerDetail">sin conectar</div></div>
+      <div class="state" id="trainerState">—</div>
+    </div>
+    <div class="link" id="linkConsumers">
+      <div><div class="what">iPad</div><div class="detail" id="consumersDetail">ninguno conectado</div></div>
+      <div class="state" id="consumersState">—</div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-bottom:18px">
+    <button class="btn btn-primary" id="btnTrainer">Conectar rodillo</button>
+    <button class="btn" id="btnDisconnect" disabled>Desconectar</button>
+    <label class="check"><input type="checkbox" id="showAll"> Mostrar todos los dispositivos</label>
+  </div>
+
+  <div class="live">
+    <div><b id="vPower">0</b><span>vatios</span></div>
+    <div><b id="vCadence">0</b><span>cadencia</span></div>
+    <div><b id="vHr">—</b><span>pulso</span></div>
+    <div><b id="vSlope">0,0</b><span>% pedido</span></div>
+  </div>
+
+  <div class="addr">
+    <h2>Qué abrir en el iPad</h2>
+    <div id="addrList"><span class="detail">buscando direcciones…</span></div>
+    <ol>
+      <li>Abrí esa dirección en Safari, en el iPad. Tiene que ser <b>http</b>, no la de GitHub Pages: desde HTTPS el navegador bloquea la conexión al relevo por contenido mixto.</li>
+      <li>En el iPad: <b>Ajustes → Rodillo → Puente en red local</b>, pegá la dirección del relevo y dale a Conectar.</li>
+      <li>Volvé aquí y conectá el rodillo. El iPad verá los vatios al instante.</li>
+    </ol>
+  </div>
+
+  <pre class="log" id="log" style="margin-top:18px"></pre>
+</main>
+
+<script type="module" src="js/provider.js"></script>
+</body>
+</html>
